@@ -104,15 +104,15 @@ function getLearnerData(course, ag, submissions)
   let dueAsnmt = dueAssignments(asnmt);
   // console.log(dueAsnmt);
   let dueSubs = dueSubmissions(dueAsnmt, submissions);
-  let learnerTotalScore = learnerTotal(dueSubs, gradesArr);
-  // console.log(dueSubs);
+  let learnerTotalScore = learnerTotal(dueSubs, learnerIDs(submissions));
+  // console.log(learnerTotalScore);
   let totalPoints = 0;
-  let index = 1;
+  // let index = 1;
 
   // for loop to iterate through each dued assignment
   for(let a = 0; a < dueAsnmt.length; a++)
   {
-    index = 0;
+    let index = 0;
     // Sum of total possible points of dued assignments
     totalPoints += dueAsnmt[a].points_possible;
     // console.log(totalPoints);
@@ -141,12 +141,15 @@ function getLearnerData(course, ag, submissions)
           // console.log(dueSubs[l].assignment_id);
           // console.log(gradesArr[index][dueSubs[l].assignment_id] = gradedasnmt);
           //console.log(gradesArr);
-          gradesArr[index][dueSubs[l].assignment_id] = gradedasnmt
+          gradesArr[index][dueSubs[l].assignment_id] = parseFloat(gradedasnmt);
           index++;
         }        
       }
     }
   }
+
+  weightedAvg(totalPoints, learnerTotalScore, gradesArr);
+  console.log(`\n\nRESULTS:`)
   console.log(gradesArr);
   return;
 }
@@ -314,6 +317,22 @@ function learnerTotal(dueSubmissions, learnerIDs)
   }
   return result;
 }
+
+// Function to add weighted average to Array of Student scores and ID
+function weightedAvg(totalAsnmtScore, learnerTotalArr, finalArr)
+{
+  let result = [];
+  let avg = 0;
+
+  for(let x = 0; x < learnerTotalArr.length; x++)
+  {
+    avg = quotient(learnerTotalArr[x].total, totalAsnmtScore)
+    // console.log(avg);
+    finalArr[x]['avg'] = parseFloat(avg.toPrecision(3));
+  }
+
+  // console.log(finalArr);
+} 
 
 // Function accept assignmentgroup as argument and outputs assignment id, due date, and possible points in an array
 
