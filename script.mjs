@@ -79,13 +79,11 @@ const LearnerSubmissions =
   }
 ];
 
-let gradesArr = [];
-//let learnerTotal = [];
-
 function getLearnerData(course, ag, submissions) 
 {
   // here, we would process this data to achieve the desired result.
-  let result = [];
+  let gradesArr = [];
+  let totalPoints = 0;
 
   try
   {
@@ -99,15 +97,19 @@ function getLearnerData(course, ag, submissions)
 
   // Array of objects of Learner IDs
   gradesArr = learnerIDs(submissions);
-    
-  let asnmt = getAssignment(ag);
-  let dueAsnmt = dueAssignments(asnmt);
-  // console.log(dueAsnmt);
-  let dueSubs = dueSubmissions(dueAsnmt, submissions);
-  let learnerTotalScore = learnerTotal(dueSubs, learnerIDs(submissions));
+
+  // Function to retreive assignments from ag object
+  const asnmt = getAssignment(ag);
+
+  // Function to retreive assignments that are due
+  const dueAsnmt = dueAssignments(asnmt);
+
+  // Function to retreive learner submissions that are due
+  const dueSubs = dueSubmissions(dueAsnmt, submissions);
+
+  // Array object holding Learner's Total Score 
+  const learnerTotalScore = learnerTotal(dueSubs, learnerIDs(submissions));
   // console.log(learnerTotalScore);
-  let totalPoints = 0;
-  // let index = 1;
 
   // for loop to iterate through each dued assignment
   for(let a = 0; a < dueAsnmt.length; a++)
@@ -122,13 +124,24 @@ function getLearnerData(course, ag, submissions)
     {
       // console.log(index);
       // If id from assignments and assignment_id from Learner Submission are the same:
-      // ~ Determine is assignment was late
-      // ~ Calculate the grade of the assignment
+      // 1) Determine if assignment was late
+      // 2) Calculate the grade of the assignment
+      // console.log(`Due Assignmnent ID: ` + dueAsnmt[a].id);
+      // console.log(`Learner Submission - Assignment ID: ` + dueSubs[l].assignment_id + `\n`);
       if(dueAsnmt[a].id == dueSubs[l].assignment_id)
       {
-        let late = islate(dueAsnmt[a].due_at, submissions[l].submission.submitted_at);
+        // console.log(`Due Assignmnent ID: ` + dueAsnmt[a].id);
+        // console.log(`Learner Submission - Assignment ID: ` + dueSubs[l].assignment_id + `\n`);
+        // console.log(`Due Assignment: ` + dueAsnmt[a].due_at);
+        // console.log(`Leaner Submission Turn-in: ` + submissions[l].submission.submitted_at + `\n`);
+        let late = islate(dueAsnmt[a].due_at, dueSubs[l].submission.submitted_at);
 
-        let gradedasnmt = grade(submissions[l].submission.score, dueAsnmt[a].points_possible, late);
+        // console.log(`Is Late: ` + late);
+        // console.log(`Learner score: ` + dueSubs[l].submission.score);
+        // console.log(`Assignment total: ` + dueAsnmt[a].points_possible);
+        let gradedasnmt = grade(dueSubs[l].submission.score, dueAsnmt[a].points_possible, late);
+        // console.log(`Grade for Assignment: ` + gradedasnmt + `\n`);
+        // console.log(`Grade for Asnmt ${submissions[l].assignment_id}: ` + gradedasnmt);
         gradedasnmt = gradedasnmt.toPrecision(2);
         // console.log(`Score of graded assignment: ${gradedasnmt}`);
 
@@ -136,30 +149,28 @@ function getLearnerData(course, ag, submissions)
         // console.log(`Grades Array ID: ${gradesArr[index].id}`)
         if(dueSubs[l].learner_id == gradesArr[index].id)
         {
-          //console.log(`Counter ${index}`);
           // console.log(gradesArr[a].id);
           // console.log(dueSubs[l].assignment_id);
           // console.log(gradesArr[index][dueSubs[l].assignment_id] = gradedasnmt);
           //console.log(gradesArr);
           gradesArr[index][dueSubs[l].assignment_id] = parseFloat(gradedasnmt);
           index++;
+          continue;
         }        
       }
     }
   }
 
+  // Pass Total Assigment Score, Learner's Total Score, and Learner Graded Assignment's into 
+  // weightAvg Function 
   weightedAvg(totalPoints, learnerTotalScore, gradesArr);
-  console.log(`\n\nRESULTS:`)
-  console.log(gradesArr);
-  return;
+  // console.log(`\n\nRESULTS:`)
+  // console.log(gradesArr);
+  return gradesArr;
 }
-
-
-
-// Create array of objects with following:
-// 1) keys of id and avg
   
-getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
+let finalResult  = getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
+console.log(finalResult);
   
 // RESULTS------------------------------------------------------------------------------------
 // const result = [
@@ -171,31 +182,22 @@ getLearnerData(CourseInfo, AssignmentGroup, LearnerSubmissions);
 //   },
 //   {
 //     id: 132,
-//     avg: 0.82, // (39 + 125) / (50 + 150)
+//     avg: 0.895, // (39 + 140) / (50 + 150)
 //     1: 0.78, // 39 / 50
 //     2: 0.833 // late: (140 - 15) / 150
 //   }
 // ];
 
 // FUNCTIONS----------------------------------------------------------------------------------
-// Function to calculate grades, if late, deduction 10% from score, otherwise score divided by total points
+
+// Function to calculate grades, if late, deduction 10% from score, otherwise score 
+// divided by total points
 function grade(score, total, late)
 {
   if(late)
       return (score - (total * 0.10)) / total;
   else
       return score / total;
-}
-
-// Function to get a sum for a given number array arguement
-function sum(numsArr)
-{
-  let result = 0;
-
-  for(let i = 0; i < numsArr.length; i++)
-    result += numsArr[i];
-
-  return result;
 }
 
 // Function to calculate a quotient
@@ -221,8 +223,6 @@ function islate(dueDate, submissionDate)
 
   if(Date.parse(dueDate) <= Date.parse(currentDate))
     return Date.parse(submissionDate) > Date.parse(dueDate);
-  else
-    return 'Not Due';
 }
 
 // Function to remove on-going assignments
@@ -254,23 +254,29 @@ function dueSubmissions(dueAssignmentIDs, submissions)
         result.push(submissions[x]);
     }
   }
-  
+  // console.log(result);
+  // console.log(`\n`);
   return result;
 }
 
-// Function accepts leaner submissions as argument and outputs array of objects of unique learner IDs
-//learnerIDs(LearnerSubmissions);
+// Function that accepts leaner submissions as argument and returns an 
+// array of objects of unique learner IDs 
+// learnerIDs(LearnerSubmissions); // Test 
 function learnerIDs(submission)
 {
   let uniqueIDs = [];
   let keys = [];
 
+  // console.log(submission);
   // Iterate through submissions data to obtain learner IDs
   for(let i = 1; i < submission.length; i++)
     uniqueIDs.push(submission[i].learner_id);
 
+  // console.log(uniqueIDs);
+
   // Use Set() to find unique learner IDs
   uniqueIDs = [...new Set(uniqueIDs)];
+  // console.log(uniqueIDs);
 
   // for loop to create array of 'id' to use in key:value map
   for(let x = 0; x < uniqueIDs.length; x++)
@@ -301,15 +307,19 @@ function learnerTotal(dueSubmissions, learnerIDs)
   Object.assign(result, learnerIDs);
   
   // Initialize a new key:value of total: 0 to all learnerIDs array of objects
-  for(let i = 0; i < result.length; i++)
-    result[i]['total'] = 0;
+  result.forEach(element => 
+  {
+    element['total'] = 0
+  });
+
+  //console.log(result);
 
   // Nested for loop to iterate both array of objects: results and dueSubmissions
   for(let x = 0; x < result.length; x++)
   {
     for(let y = 0; y < dueSubmissions.length; y++)
     {
-      // If learner ID match from results and dueSubmissions:
+      // If learner's ID match from results and dueSubmissions:
       // add to the sum of assignment score to the 'total' key
       if(result[x].id === dueSubmissions[y].learner_id)
         result[x]['total'] += dueSubmissions[y].submission.score;
@@ -324,8 +334,11 @@ function weightedAvg(totalAsnmtScore, learnerTotalArr, finalArr)
   let result = [];
   let avg = 0;
 
+  // Iterate through Learner grades and calculate their weighter average
   for(let x = 0; x < learnerTotalArr.length; x++)
   {
+    // console.log(`Learner's Total Score: ` + learnerTotalArr[x].total);
+    // console.log(`Total Score of Assignments: ` + totalAsnmtScore);
     avg = quotient(learnerTotalArr[x].total, totalAsnmtScore)
     // console.log(avg);
     finalArr[x]['avg'] = parseFloat(avg.toPrecision(3));
